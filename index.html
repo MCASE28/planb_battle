@@ -87,7 +87,7 @@
 
         .chat-header {
             padding: 6px 12px;
-            background: #2a2a2a;
+            background: rgba(255, 255, 255, 0.03);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
@@ -106,19 +106,6 @@
             font-weight: 700;
             font-size: 0.85rem;
             color: #fff;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #555;
-            margin-left: auto;
-        }
-
-        .status-dot.online {
-            background: #4cd964;
-            box-shadow: 0 0 8px #4cd964;
         }
 
         .chat-messages {
@@ -381,24 +368,6 @@
             transports: ['websocket']
         });
 
-        socket.on('initStatus', (statusMap) => {
-            for (const soopId in statusMap) {
-                const dot = document.querySelector(`.chat-frame[data-id="${soopId}"] .status-dot`);
-                if (dot) {
-                    if (statusMap[soopId].connected) dot.classList.add('online');
-                    else dot.classList.remove('online');
-                }
-            }
-        });
-
-        socket.on('status', (data) => {
-            const dot = document.querySelector(`.chat-frame[data-id="${data.soopId}"] .status-dot`);
-            if (dot) {
-                if (data.connected) dot.classList.add('online');
-                else dot.classList.remove('online');
-            }
-        });
-
         socket.on('chat', (data) => {
             addMessage(data.soopId, data.nick, data.message);
         });
@@ -452,7 +421,6 @@
                     <div class="chat-header">
                         <img src="${profileImg}" class="streamer-img" onerror="this.src='https://res.afreecatv.com/images/afreeca_profile_no_image.gif'">
                         <span class="streamer-name">${label}</span>
-                        ${isNaN(id) ? '<div class="status-dot"></div>' : ''}
                     </div>
                     <div class="chat-messages"></div>
                 </div>
