@@ -4,21 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>플랜비 대진표 세팅</title>
+    <title>플랜비 대진표 & 실시간 채팅</title>
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Inter & Noto Sans KR -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;700&display=swap"
+        rel="stylesheet">
+    <!-- Socket.io -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
             --bg-color: #121212;
-            --card-bg: #1e1e1e;
+            --sidebar-bg: #1a1a1a;
+            --card-bg: #242424;
             --primary-color: #007bff;
             --primary-hover: #0056b3;
             --text-color: #e0e0e0;
             --text-secondary: #999;
             --border-color: #333;
             --accent-glow: rgba(0, 123, 255, 0.2);
+            --ios-bg: #1a1a1a;
+            --ios-bubble-receive: #3a3a3c;
+            --ios-text: #ffffff;
         }
 
         * {
@@ -26,52 +34,150 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Inter', 'Noto Sans KR', sans-serif;
-            -ms-overflow-style: none;
-            /* IE, Edge */
-            scrollbar-width: none;
-            /* Firefox */
-        }
-
-        *::-webkit-scrollbar {
-            display: none;
-            /* Chrome, Safari, Opera */
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .chat-sidebar {
+            width: 380px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 12px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .chat-sidebar.right {
+            border-right: none;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            padding: 40px 20px;
         }
 
+        /* iOS Chat Style */
+        .chat-frame {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            height: 160px;
+            /* 기존 320px에서 절반 축소 */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+
+        .chat-header {
+            padding: 6px 12px;
+            background: #2a2a2a;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .streamer-img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #444;
+        }
+
+        .streamer-name {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #fff;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #555;
+            margin-left: auto;
+        }
+
+        .status-dot.online {
+            background: #4cd964;
+            box-shadow: 0 0 8px #4cd964;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 8px 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #1a1a1a;
+        }
+
+        .message-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .msg-sender {
+            font-size: 10px;
+            color: #8e8e93;
+            margin-bottom: 2px;
+            margin-left: 4px;
+        }
+
+        .message-bubble {
+            max-width: 90%;
+            padding: 5px 10px;
+            border-radius: 14px;
+            font-size: 12.5px;
+            line-height: 1.3;
+            background: var(--ios-bubble-receive);
+            color: var(--ios-text);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Tournament UI (Bracket) */
         .container {
             width: 100%;
-            max-width: 600px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 40px;
+            max-width: 650px;
         }
 
         h1 {
             font-weight: 700;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
             color: var(--primary-color);
-            margin-bottom: 10px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.5rem;
         }
 
         .tabs {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin-bottom: 30px;
-            background: var(--card-bg);
-            padding: 5px;
-            border-radius: 12px;
+            gap: 4px;
+            margin-bottom: 25px;
+            background: #2a2a2a;
+            padding: 4px;
+            border-radius: 10px;
             border: 1px solid var(--border-color);
         }
 
@@ -79,32 +185,33 @@
             background: transparent;
             border: none;
             color: var(--text-secondary);
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 6px 20px;
+            border-radius: 7px;
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
+            font-size: 0.9rem;
         }
 
         .tab-btn.active {
             background: var(--primary-color);
-            color: white;
-            box-shadow: 0 4px 15px var(--accent-glow);
+            color: #fff;
+            box-shadow: 0 2px 8px var(--accent-glow);
         }
 
         .mode-content {
             display: none;
-            animation: fadeIn 0.4s ease;
         }
 
         .mode-content.active {
             display: block;
+            animation: fadeIn 0.3s ease;
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(5px);
             }
 
             to {
@@ -113,41 +220,50 @@
             }
         }
 
-        /* VS Mode Styles */
-        .match-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 15px;
+        .match-card,
+        .draft-match {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            transition: transform 0.2s ease, border-color 0.2s ease;
+            gap: 12px;
+            margin-bottom: 15px;
+            position: relative;
         }
 
-        .match-card:hover {
-            border-color: var(--primary-color);
-            transform: scale(1.01);
-        }
-
-        .player-info {
+        .slot {
+            background: var(--card-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            min-height: 100px;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 15px;
-            flex: 1;
+            justify-content: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .slot.fixed {
+            cursor: default;
+            border-style: solid;
+            background: #2a2a2a;
+        }
+
+        .slot:hover:not(.fixed) {
+            border-color: var(--primary-color);
+            background: #2e2e2e;
         }
 
         .player-img-container {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: #2a2a2a;
             overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid var(--border-color);
+            border: 2px solid #444;
+            margin-bottom: 5px;
         }
 
         .player-img-container img {
@@ -156,98 +272,18 @@
             object-fit: cover;
         }
 
-        .player-img-container i {
-            font-size: 30px;
-            color: var(--text-secondary);
-        }
-
         .player-name {
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-color);
         }
 
         .vs-label {
             font-weight: 900;
             color: var(--primary-color);
+            font-size: 1.1rem;
             font-style: italic;
-            text-align: center;
         }
 
-        .action-btn-container {
-            display: flex;
-            justify-content: flex-end;
-            position: relative;
-        }
-
-        .action-btn {
-            background: #2a2a2a;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .action-btn:hover {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-            color: white;
-            box-shadow: 0 0 10px var(--accent-glow);
-        }
-
-        /* Draft Mode Styles */
-        .draft-match {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .slot {
-            background: var(--card-bg);
-            border: 2px dashed var(--border-color);
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .slot:hover {
-            border-color: var(--primary-color);
-            background: rgba(0, 123, 255, 0.05);
-        }
-
-        .slot i {
-            font-size: 24px;
-            color: var(--text-secondary);
-            margin-bottom: 5px;
-        }
-
-        .slot .selected-name {
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-
-        .draft-vs {
-            font-weight: 900;
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-        }
-
-        /* Dropdown Styles */
         .dropdown {
             position: absolute;
             top: 100%;
@@ -255,11 +291,11 @@
             width: 100%;
             background: #2a2a2a;
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            z-index: 100;
+            border-radius: 8px;
+            z-index: 10000;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             display: none;
-            max-height: 250px;
+            max-height: 180px;
             overflow-y: auto;
             margin-top: 5px;
         }
@@ -269,70 +305,176 @@
         }
 
         .dropdown-item {
-            padding: 12px;
+            padding: 8px 12px;
             text-align: left;
             cursor: pointer;
-            transition: background 0.2s;
             border-bottom: 1px solid var(--border-color);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
+            font-size: 0.85rem;
         }
 
         .dropdown-item:hover {
             background: var(--primary-color);
-            color: white;
+            color: #fff;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="container">
-        <header>
-            <h1>플랜비 대진표</h1>
-        </header>
+    <!-- Left Sidebar: Player Chats -->
+    <div class="chat-sidebar" id="left-sidebar"></div>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchMode('vs')">VS 모드</button>
-            <button class="tab-btn" onclick="switchMode('draft')">드래프트 모드</button>
-        </div>
+    <div class="main-content">
+        <div class="container">
+            <h1>PLAN B BATTLE SETTING</h1>
 
-        <!-- VS Mode Content -->
-        <div id="vs-mode" class="mode-content active">
-            <!-- Matches will be generated by JS -->
-        </div>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchMode('vs')">VS Mode</button>
+                <button class="tab-btn" onclick="switchMode('draft')">Draft Mode</button>
+            </div>
 
-        <!-- Draft Mode Content -->
-        <div id="draft-mode" class="mode-content">
-            <!-- Matches will be generated by JS -->
+            <div id="vs-mode" class="mode-content active"></div>
+            <div id="draft-mode" class="mode-content"></div>
         </div>
     </div>
 
+    <!-- Right Sidebar: Draft Numbers 1-5 -->
+    <div class="chat-sidebar right" id="right-sidebar"></div>
+
     <script>
-        const players = ['밤베', '윰로로', '찌로', '프하', '호발'];
-        const draftList = [...players, '1', '2', '3', '4', '5'];
+        const players = [
+            { nick: '밤베', soopId: 'bambe53' },
+            { nick: '윰로로', soopId: 'yumroro' },
+            { nick: '찌로', soopId: 'ch1ch1r0' },
+            { nick: '프하', soopId: 'peuhaha' },
+            { nick: '호발', soopId: 'hobal115end' }
+        ];
+
+        const draftList = [
+            { nick: '다니얀', soopId: 'daniyan1030' },
+            { nick: '밤새나', soopId: 'bamsaena' },
+            { nick: '공도리', soopId: 'swcmnb67' },
+            { nick: '한세현', soopId: 'kangturtle' },
+            { nick: '빕어', soopId: 'bver99' }
+        ];
+
+        // Socket.io 연동 (통신 에러 해결을 위해 transports: ['websocket'] 추가)
+        const socket = io('https://planb_battle.olhda.me', {
+            transports: ['websocket']
+        });
+
+        socket.on('initStatus', (statusMap) => {
+            for (const soopId in statusMap) {
+                const dot = document.querySelector(`.chat-frame[data-id="${soopId}"] .status-dot`);
+                if (dot) {
+                    if (statusMap[soopId].connected) dot.classList.add('online');
+                    else dot.classList.remove('online');
+                }
+            }
+        });
+
+        socket.on('status', (data) => {
+            const dot = document.querySelector(`.chat-frame[data-id="${data.soopId}"] .status-dot`);
+            if (dot) {
+                if (data.connected) dot.classList.add('online');
+                else dot.classList.remove('online');
+            }
+        });
+
+        socket.on('chat', (data) => {
+            addMessage(data.soopId, data.nick, data.message);
+        });
+
+        function addMessage(targetId, sender, message) {
+            const chatBox = document.querySelector(`.chat-frame[data-id="${targetId}"] .chat-messages`);
+            if (!chatBox) return;
+
+            const msgHtml = `
+                <div class="message-group">
+                    <span class="msg-sender">${sender}</span>
+                    <div class="message-bubble">${message}</div>
+                </div>
+            `;
+            chatBox.insertAdjacentHTML('beforeend', msgHtml);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // 테스트 함수 (특정 인원 타겟팅 가능)
+        window.text = function (nickOrId, msg) {
+            // 소속된 ID 찾기
+            const allItems = [...players, ...draftList];
+            const target = allItems.find(p => p.nick === nickOrId || p.soopId === nickOrId);
+
+            if (target) {
+                // 특정 유저에게만 노출
+                addMessage(target.soopId, target.nick, msg);
+            } else {
+                // 대상을 못 찾으면 모든 창에 노출 (기존 방식 유지/하위호환)
+                console.warn(`Target not found for ${nickOrId}, emitting to all.`);
+                allItems.forEach(p => addMessage(p.soopId, nickOrId, msg));
+            }
+        };
+
+        function initChatFrames() {
+            // Left Sidebar
+            const leftSidebar = document.getElementById('left-sidebar');
+            leftSidebar.innerHTML = players.map(p => createFrameHtml(p.soopId, p.nick)).join('');
+
+            // Right Sidebar
+            const rightSidebar = document.getElementById('right-sidebar');
+            rightSidebar.innerHTML = draftList.map(p => createFrameHtml(p.soopId, p.nick)).join('');
+        }
+
+        function createFrameHtml(id, label) {
+            const profileImg = isNaN(id)
+                ? `https://stimg.afreecatv.com/LOGO/${id.substring(0, 2)}/${id}/${id}.jpg`
+                : 'https://res.afreecatv.com/images/afreeca_profile_no_image.gif';
+
+            return `
+                <div class="chat-frame" data-id="${id}">
+                    <div class="chat-header">
+                        <img src="${profileImg}" class="streamer-img" onerror="this.src='https://res.afreecatv.com/images/afreeca_profile_no_image.gif'">
+                        <span class="streamer-name">${label}</span>
+                        ${isNaN(id) ? '<div class="status-dot"></div>' : ''}
+                    </div>
+                    <div class="chat-messages"></div>
+                </div>
+            `;
+        }
 
         function initVSMode() {
             const container = document.getElementById('vs-mode');
-            container.innerHTML = players.map(player => `
+            container.innerHTML = players.map(p => `
                 <div class="match-card">
-                    <div class="player-info">
+                    <div class="slot fixed">
                         <div class="player-img-container">
-                            <img src="./assets/img/${player}.png" alt="${player}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                            <i class="material-icons" style="display:none;">person</i>
+                            <img src="./assets/img/${p.nick}.png" alt="${p.nick}" onerror="this.src='https://res.afreecatv.com/images/afreeca_profile_no_image.gif'">
                         </div>
-                        <span class="player-name">${player}</span>
+                        <span class="player-name" style="font-weight:600;">${p.nick}</span>
                     </div>
                     <span class="vs-label">VS</span>
-                    <div class="action-btn-container">
-                        <button class="action-btn" onclick="toggleDropdown(this.parentElement)">
-                            <i class="material-icons">help_outline</i>
-                            <span class="selected-val" style="display:none; font-weight:700; color:var(--primary-color);"></span>
-                        </button>
-                        <div class="dropdown" style="right: 0; left: auto; width: 120px;">
-                            ${draftList.map(item => `<div class="dropdown-item" onclick="selectItem(event, this, '${item}')">${item}</div>`).join('')}
+                    <div class="slot" onclick="toggleDropdown(this)">
+                        <i class="material-icons" style="font-size:20px; color:#555;">help_outline</i>
+                        <span class="selected-name" style="font-weight:700; color:var(--primary-color); font-size:1.1rem;"></span>
+                        <div class="dropdown">
+                            ${draftList.map(item => `<div class="dropdown-item" onclick="selectItem(event, this, '${item.nick}')">${item.nick}</div>`).join('')}
                         </div>
                     </div>
                 </div>
@@ -346,18 +488,18 @@
                 html += `
                     <div class="draft-match">
                         <div class="slot" onclick="toggleDropdown(this)">
-                            <i class="material-icons">help_outline</i>
-                            <span class="selected-name"></span>
+                            <i class="material-icons" style="font-size:20px; color:#555;">help_outline</i>
+                            <span class="selected-name" style="font-weight:700; color:var(--primary-color); font-size:1.1rem;"></span>
                             <div class="dropdown">
-                                ${draftList.map(item => `<div class="dropdown-item" onclick="selectItem(event, this, '${item}')">${item}</div>`).join('')}
+                                ${draftList.map(item => `<div class="dropdown-item" onclick="selectItem(event, this, '${item.nick}')">${item.nick}</div>`).join('')}
                             </div>
                         </div>
-                        <div class="draft-vs">VS</div>
+                        <div class="vs-label">VS</div>
                         <div class="slot" onclick="toggleDropdown(this)">
-                            <i class="material-icons">help_outline</i>
-                            <span class="selected-name"></span>
+                            <i class="material-icons" style="font-size:20px; color:#555;">help_outline</i>
+                            <span class="selected-name" style="font-weight:700; color:var(--primary-color); font-size:1.1rem;"></span>
                             <div class="dropdown">
-                                ${draftList.map(item => `<div class="dropdown-item" onclick="selectItem(event, this, '${item}')">${item}</div>`).join('')}
+                                ${draftList.map(item => `<div class="dropdown-item" onclick="selectItem(event, this, '${item.nick}')">${item.nick}</div>`).join('')}
                             </div>
                         </div>
                     </div>
@@ -377,56 +519,51 @@
                 document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
                 document.getElementById('draft-mode').classList.add('active');
             }
-
-            // Close any open dropdowns when switching
-            document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
         }
 
         function toggleDropdown(slotElement) {
-            // Close other dropdowns
             document.querySelectorAll('.dropdown').forEach(d => {
                 if (d !== slotElement.querySelector('.dropdown')) {
                     d.classList.remove('show');
+                    const parentCard = d.closest('.match-card') || d.closest('.draft-match');
+                    if (parentCard) parentCard.style.zIndex = "";
                 }
             });
 
             const dropdown = slotElement.querySelector('.dropdown');
-            dropdown.classList.toggle('show');
+            const isShowing = dropdown.classList.toggle('show');
+            const parentCard = slotElement.closest('.match-card') || slotElement.closest('.draft-match');
+            if (parentCard) parentCard.style.zIndex = isShowing ? "9999" : "";
         }
 
         function selectItem(event, itemElement, value) {
             event.stopPropagation();
-            const parent = itemElement.closest('.slot') || itemElement.closest('.action-btn-container');
-            const dropdown = parent.querySelector('.dropdown');
+            const slot = itemElement.closest('.slot');
+            const nameSpan = slot.querySelector('.selected-name');
+            const icon = slot.querySelector('.material-icons');
+            const dropdown = slot.querySelector('.dropdown');
 
-            if (parent.classList.contains('slot')) {
-                const nameSpan = parent.querySelector('.selected-name');
-                const icon = parent.querySelector('.material-icons');
-                nameSpan.innerText = value;
-                icon.style.display = 'none';
-                parent.style.borderStyle = 'solid';
-            } else {
-                const btn = parent.querySelector('.action-btn');
-                const icon = btn.querySelector('.material-icons');
-                const valSpan = btn.querySelector('.selected-val');
-
-                icon.style.display = 'none';
-                valSpan.innerText = value;
-                valSpan.style.display = 'block';
-                btn.style.borderColor = 'var(--primary-color)';
-            }
-
+            nameSpan.innerText = value;
+            if (icon) icon.style.display = 'none';
+            slot.style.borderStyle = 'solid';
+            slot.style.borderColor = 'var(--primary-color)';
             dropdown.classList.remove('show');
+
+            const parentCard = slot.closest('.match-card') || slot.closest('.draft-match');
+            if (parentCard) parentCard.style.zIndex = "";
         }
 
-        // Close dropdown when clicking outside
         window.onclick = function (event) {
-            if (!event.target.closest('.slot') && !event.target.closest('.action-btn-container')) {
-                document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+            if (!event.target.closest('.slot')) {
+                document.querySelectorAll('.dropdown').forEach(d => {
+                    d.classList.remove('show');
+                    const parentCard = d.closest('.match-card') || d.closest('.draft-match');
+                    if (parentCard) parentCard.style.zIndex = "";
+                });
             }
         }
 
-        // Initialize
+        initChatFrames();
         initVSMode();
         initDraftMode();
     </script>
