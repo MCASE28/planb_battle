@@ -305,11 +305,17 @@
             cursor: pointer;
             border-bottom: 1px solid var(--border-color);
             font-size: 0.85rem;
+            color: var(--text-color);
         }
 
         .dropdown-item:hover {
             background: var(--primary-color);
             color: #fff;
+        }
+
+        .dropdown-item.disabled {
+            display: none;
+            /* 이미 선택된 항목은 숨김 */
         }
 
         ::-webkit-scrollbar {
@@ -516,18 +522,35 @@
         }
 
         function toggleDropdown(slotElement) {
-            document.querySelectorAll('.dropdown').forEach(d => {
-                if (d !== slotElement.querySelector('.dropdown')) {
-                    d.classList.remove('show');
-                    const parentCard = d.closest('.match-card') || d.closest('.draft-match');
-                    if (parentCard) parentCard.style.zIndex = "";
-                }
-            });
-
             const dropdown = slotElement.querySelector('.dropdown');
-            const isShowing = dropdown.classList.toggle('show');
-            const parentCard = slotElement.closest('.match-card') || slotElement.closest('.draft-match');
-            if (parentCard) parentCard.style.zIndex = isShowing ? "9999" : "";
+            const isShowing = dropdown.classList.contains('show');
+
+            // 모든 드롭다운 닫기
+            document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+            document.querySelectorAll('.match-card, .draft-match').forEach(card => card.style.zIndex = "");
+
+            if (!isShowing) {
+                // 현재 모드(VS/Draft)에서 이미 선택된 이름들 수집
+                const currentModeId = slotElement.closest('.mode-content').id;
+                const selectedNames = Array.from(document.querySelectorAll(`#${currentModeId} .selected-name`))
+                    .map(el => el.innerText.trim())
+                    .filter(name => name !== "");
+
+                // 드롭다운 아이템 필터링 (자기 자신은 제외하고 다른 곳에서 선택된 것들 숨김)
+                const currentSelected = slotElement.querySelector('.selected-name').innerText.trim();
+                dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+                    const itemName = item.innerText.trim();
+                    if (selectedNames.includes(itemName) && itemName !== currentSelected) {
+                        item.classList.add('disabled');
+                    } else {
+                        item.classList.remove('disabled');
+                    }
+                });
+
+                dropdown.classList.add('show');
+                const parentCard = slotElement.closest('.match-card') || slotElement.closest('.draft-match');
+                if (parentCard) parentCard.style.zIndex = "9999";
+            }
         }
 
         function selectItem(event, itemElement, value) {
