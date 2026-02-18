@@ -176,6 +176,7 @@
         .action-btn-container {
             display: flex;
             justify-content: flex-end;
+            position: relative;
         }
 
         .action-btn {
@@ -326,9 +327,13 @@
                     </div>
                     <span class="vs-label">VS</span>
                     <div class="action-btn-container">
-                        <button class="action-btn">
+                        <button class="action-btn" onclick="toggleDropdown(this.parentElement)">
                             <i class="material-icons">help_outline</i>
+                            <span class="selected-val" style="display:none; font-weight:700; color:var(--primary-color);"></span>
                         </button>
+                        <div class="dropdown" style="right: 0; left: auto; width: 120px;">
+                            ${draftList.map(item => `<div class="dropdown-item" onclick="selectItem(event, this, '${item}')">${item}</div>`).join('')}
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -391,22 +396,32 @@
 
         function selectItem(event, itemElement, value) {
             event.stopPropagation();
-            const slot = itemElement.closest('.slot');
-            const nameSpan = slot.querySelector('.selected-name');
-            const icon = slot.querySelector('.material-icons');
-            const dropdown = slot.querySelector('.dropdown');
+            const parent = itemElement.closest('.slot') || itemElement.closest('.action-btn-container');
+            const dropdown = parent.querySelector('.dropdown');
 
-            nameSpan.innerText = value;
-            icon.style.display = 'none';
+            if (parent.classList.contains('slot')) {
+                const nameSpan = parent.querySelector('.selected-name');
+                const icon = parent.querySelector('.material-icons');
+                nameSpan.innerText = value;
+                icon.style.display = 'none';
+                parent.style.borderStyle = 'solid';
+            } else {
+                const btn = parent.querySelector('.action-btn');
+                const icon = btn.querySelector('.material-icons');
+                const valSpan = btn.querySelector('.selected-val');
+
+                icon.style.display = 'none';
+                valSpan.innerText = value;
+                valSpan.style.display = 'block';
+                btn.style.borderColor = 'var(--primary-color)';
+            }
+
             dropdown.classList.remove('show');
-
-            // Set slot to solid style when selected
-            slot.style.borderStyle = 'solid';
         }
 
         // Close dropdown when clicking outside
         window.onclick = function (event) {
-            if (!event.target.closest('.slot')) {
+            if (!event.target.closest('.slot') && !event.target.closest('.action-btn-container')) {
                 document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
             }
         }
