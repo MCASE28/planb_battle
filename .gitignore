@@ -1,1 +1,8 @@
-/plan.md
+# 모든 파일 무시
+*
+
+# 예외: index.html 및 assets/img 폴더 허용
+!index.html
+!assets/
+!assets/img/
+!assets/img/**
